@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Chat Application</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .message-container {
+            height: calc(100vh - 160px);
+        }
+        .message {
+            word-break: break-word;
+        }
+        .message-received {
+            background-color: #e5e7eb;
+            border-radius: 15px 15px 15px 0;
+        }
+        .message-sent {
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 15px 15px 0 15px;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="bg-white rounded-lg shadow-lg">
+            <!-- Chat Header -->
+            <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                        <i class="bi bi-person-fill text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold">Chat Room</h2>
+                        <p class="text-sm text-gray-500" id="connectionStatus">Connecting...</p>
+                    </div>
+                </div>
+                <button id="menuBtn" class="text-gray-500 hover:text-gray-700">
+                    <i class="bi bi-three-dots-vertical text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Chat Messages -->
+            <div class="message-container overflow-y-auto p-4" id="messageContainer">
+                <!-- Messages will be dynamically added here -->
+            </div>
+
+            <!-- Chat Input -->
+            <div class="p-4 border-t border-gray-200">
+                <form id="messageForm" class="flex items-center space-x-2">
+                    <input type="text" id="messageInput" class="flex-1 p-2 border border-gray-300 rounded-full focus:outline-none focus:border-blue-500" placeholder="Type your message...">
+                    <button type="button" id="attachmentBtn" class="p-2 text-gray-500 hover:text-gray-700">
+                        <i class="bi bi-paperclip text-xl"></i>
+                    </button>
+                    <button type="submit" class="bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 transition duration-200">
+                        <i class="bi bi-send-fill text-xl"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection
+        let ws;
+        const connectWebSocket = () => {
+            ws = new WebSocket('ws://localhost:8080/chat'); // Update with your backend URL
+
+            ws.onopen = () => {
+                document.getElementById('connectionStatus').textContent = 'Connected';
+                console.log('Connected to WebSocket');
+            };
+
+            ws.onclose = () => {
+                document.getElementById('connectionStatus').textContent = 'Disconnected';
+                console.log('Disconnected from WebSocket');
+                // Attempt to reconnect after 5 seconds
+                setTimeout(connectWebSocket, 5000);
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                displayMessage(message, false);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        };
+
+        connectWebSocket();
+
+        // Message handling
+        const messageContainer = document.getElementById('messageContainer');
+        const messageForm = document.getElementById('messageForm');
+        const messageInput = document.getElementById('messageInput');
+
+        const displayMessage = (message, isSent = true) => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${isSent ? 'justify-end' : 'justify-start'} mb-4`;
+            
+            messageDiv.innerHTML = `
+                <div class="max-w-[70%] ${isSent ? 'message-sent' : 'message-received'} p-3 message">
+                    <p class="text-sm">${message.text}</p>
+                    <p class="text-xs ${isSent ? 'text-blue-100' : 'text-gray-500'} mt-1">
+                        ${new Date().toLocaleTimeString()}
+                    </p>
+                </div>
+            `;
+            
+            messageContainer.appendChild(messageDiv);
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        };
+
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            
+            if (message && ws.readyState === WebSocket.OPEN) {
+                const messageObj = {
+                    text: message,
+                    timestamp: new Date().toISOString()
+                };
+                
+                ws.send(JSON.stringify(messageObj));
+                displayMessage(messageObj, true);
+                messageInput.value = '';
+            }
+        });
+
+        // Attachment button handler
+        document.getElementById('attachmentBtn').addEventListener('click', () => {
+            alert('Attachment feature coming soon!');
+        });
+
+        // Menu button handler
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            alert('Menu options coming soon!');
+        });
+
+        // Handle mobile responsiveness
+        const updateHeight = () => {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        };
+
+        window.addEventListener('resize', updateHeight);
+        updateHeight();
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
